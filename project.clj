@@ -3,9 +3,9 @@
   :url "https://github.com/yourusername/il-to-ld-converter"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.11.1"]
-                 [instaparse "1.4.12"]
-                 [instaparse-transform "0.3.1"] ; For transforming parsed data
+  :dependencies [[org.clojure/clojure "1.12.0"]
+                 [instaparse "1.5.0"]
+                 ;;[instaparse-transform "0.3.1"] ; For transforming parsed data
                  [org.clojure/core.match "1.0.1"]]
   :main ^:skip-aot il-to-ld-converter.core
   :target-path "target/%s"

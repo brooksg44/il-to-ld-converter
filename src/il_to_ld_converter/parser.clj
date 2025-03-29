@@ -6,11 +6,15 @@
 ;; IL Grammar using Instaparse
 (def il-grammar
   "
-  program = instruction*
+  (* Whitespace and comment handling *)
+  <ws> = #'\\s*'
+  <comment> = #';.*'
+  <eol> = #'\\n'
   
-  instruction = (label)? operation operand?
+  program = line*
+  <line> = ws (instruction ws comment? eol? | ws comment? eol? | eol)
   
-  label = #'[A-Za-z_][A-Za-z0-9_]*:'
+  instruction = operation ws operand
   
   operation = 'LD' | 'LDN' | 'ST' | 'STN' | 'S' | 'R' | 'AND' | 'ANDN' | 
               'OR' | 'ORN' | 'XOR' | 'XORN' | 'ADD' | 'SUB' | 'MUL' | 
@@ -20,7 +24,7 @@
   
   identifier = #'[A-Za-z_][A-Za-z0-9_]*'
   numeric = #'[+-]?[0-9]+(\\.[0-9]+)?'
-  memory_address = '%' ('I' | 'Q' | 'M') ('B' | 'W' | 'D' | 'L')? #'[0-9]+'
+  memory_address = '%' ('I' | 'Q' | 'M') ('B' | 'W' | 'D' | 'L')? #'[0-9]+(\\.[0-9]+)?'
   ")
 
 ;; Create the parser
@@ -38,7 +42,7 @@
       parsed)))
 
 ;; Transform parsed IL to a more usable structure
-(def transform-il
+(defn transform-il [parsed]
   (insta-transform/transform
    {:program (fn [& instructions]
                {:type :program
@@ -53,7 +57,7 @@
                       :operand (when operand (:value operand))}))
     :label (fn [label]
              {:type :label
-              :value (str/replace label #":" "")})
+              :value (when (seq label) (str/replace label #":" ""))})
     :operation (fn [op]
                  {:type :operation
                   :value op})
@@ -62,11 +66,41 @@
                 :value operand})
     :identifier identity
     :numeric #(Float/parseFloat %)
-    :memory_address identity}))
+    :memory_address identity} parsed))
+
 
 ;; High-level parsing function
 (defn parse-il-program
   "Parse an IL program and transform it"
   [il-code]
   (let [parsed (parse il-code)]
-    (insta-transform/transform transform-il parsed)))
+    (transform-il parsed)))
+
+(comment
+
+  (let [sample-il "
+      LD %I0.0    ; Load input bit 0
+      ANDN %I0.1  ; AND with inverted input bit 1
+      ST %Q0.0    ; Store result to output bit 0
+    "]
+    (-> sample-il
+        parse
+        transform-il))  ;; Remove the recursive parse-il-program call
+  :rcf)
+
+(comment
+  ;; Test with a simpler example first
+  (let [simple-il "LD %I0.0"]
+    (insta/parses parse-il simple-il :trace true)
+    ;; Parse the simple IL code
+    (parse-il-program simple-il))
+
+  ;; Then test with the full example
+  (let [sample-il "
+      LD %I0.0    ; Load input bit 0
+      ANDN %I0.1  ; AND with inverted input bit 1
+      ST %Q0.0    ; Store result to output bit 0
+    "]
+    (insta/parses parse-il sample-il :trace true)
+
+    (parse-il-program sample-il)))

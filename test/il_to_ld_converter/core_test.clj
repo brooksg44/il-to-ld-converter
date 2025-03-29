@@ -1,6 +1,6 @@
 (ns il-to-ld-converter.core-test
-  (:require [clojure.test :refer :all]
-            [il-to-ld-converter.core :refer :all]
+  (:require [clojure.test :refer [deftest is testing]]
+            [il-to-ld-converter.core :refer [convert-il-program]]
             [il-to-ld-converter.parser :as parser]
             [il-to-ld-converter.converter :as converter]))
 
@@ -37,5 +37,5 @@
       (is (= :ld-program (get ld-program :type)))
       (is (= 3 (count (:rungs ld-program)))))))
 
-(defn run-tests []
-  (run-tests 'il-to-ld-converter.core-test))
+;;(defn run-tests []
+;;  (run-tests 'il-to-ld-converter.core-test))
