@@ -95,4 +95,22 @@
     (insta/parses parse-il sample-il :trace true)
 
     (parse-il-program sample-il))
+
+  ;; Function to test parsing with trace
+  (defn test-parse [input]
+    (println "\nTesting parse for input:" input)
+    (println "Parse result:")
+    (println (insta/parses parse-il input :trace true))
+    (println "\nTransformed result:")
+    (println (parse-il-program input)))
+
+  ;; Test cases
+  (test-parse "LD %I0.0")
+
+  (test-parse "
+    LD %I0.0    ; Load input bit 0
+    ANDN %I0.1  ; AND with inverted input bit 1
+    ST %Q0.0    ; Store result to output bit 0
+  ")
+
   :rcf)
