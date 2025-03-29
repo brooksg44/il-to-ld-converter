@@ -92,6 +92,8 @@
   ;; Test with a simpler example first
   (let [simple-il "LD %I0.0"]
     (insta/parses parse-il simple-il :trace true)
+
+
     ;; Parse the simple IL code
     (parse-il-program simple-il))
 
