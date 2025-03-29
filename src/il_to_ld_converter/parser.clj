@@ -76,17 +76,6 @@
   (let [parsed (parse il-code)]
     (transform-il parsed)))
 
-(comment
-
-  (let [sample-il "
-      LD %I0.0    ; Load input bit 0
-      ANDN %I0.1  ; AND with inverted input bit 1
-      ST %Q0.0    ; Store result to output bit 0
-    "]
-    (-> sample-il
-        parse
-        transform-il))  ;; Remove the recursive parse-il-program call
-  :rcf)
 
 (comment
   ;; Test with a simpler example first
@@ -105,4 +94,5 @@
     "]
     (insta/parses parse-il sample-il :trace true)
 
-    (parse-il-program sample-il)))
+    (parse-il-program sample-il))
+  :rcf)
