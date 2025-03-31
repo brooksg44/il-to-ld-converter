@@ -1,30 +1,35 @@
 (ns il-to-ld-converter.parser
   (:require [instaparse.core :as insta]
             [instaparse.transform :as insta-transform]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.pprint :as pp]))
 
-;; IL Grammar using Instaparse
+;; IL Grammar using Instaparse - ultra simplified approach
 (def il-grammar
   "
-  (* Whitespace and comment handling *)
-  <ws> = #'\\s*'
-  <comment> = #';.*'
-  <eol> = #'\\n'
+  <S> = program
+  program = (statement | <nl> | <ws>)*
+  statement = (labeled-instr | instruction | comment)
   
-  program = line*
-  <line> = ws (instruction ws comment? eol? | ws comment? eol? | eol)
+  instruction = operation <ws-plus> operand (<ws> comment)?
+  labeled-instr = label <ws-opt> operation <ws-plus> operand (<ws> comment)?
   
-  instruction = operation ws operand
-  
+  label = identifier ':'
   operation = 'LD' | 'LDN' | 'ST' | 'STN' | 'S' | 'R' | 'AND' | 'ANDN' | 
               'OR' | 'ORN' | 'XOR' | 'XORN' | 'ADD' | 'SUB' | 'MUL' | 
               'DIV' | 'GT' | 'GE' | 'EQ' | 'NE' | 'LE' | 'LT' | 'JMP'
   
-  operand = identifier | numeric | memory_address
+  operand = memory-address | identifier | numeric
   
-  identifier = #'[A-Za-z_][A-Za-z0-9_]*'
+  identifier = #'[a-zA-Z_][a-zA-Z0-9_]*'
   numeric = #'[+-]?[0-9]+(\\.[0-9]+)?'
-  memory_address = '%' ('I' | 'Q' | 'M') ('B' | 'W' | 'D' | 'L')? #'[0-9]+(\\.[0-9]+)?'
+  memory-address = #'%[IQM][XBWDL]?[0-9]+(\\.[0-9]+)?'
+  
+  comment = #';.*'
+  <ws> = #'[ \\t]'
+  <ws-opt> = #'[ \\t]*'
+  <ws-plus> = #'[ \\t]+'
+  <nl> = #'\\r?\\n'
   ")
 
 ;; Create the parser
@@ -38,76 +43,87 @@
   (let [parsed (parse-il il-code)]
     (if (insta/failure? parsed)
       (throw (ex-info "Parsing failed"
-                      {:error (insta/get-failure parsed)}))
+                      {:error (insta/get-failure parsed)
+                       :input il-code}))
       parsed)))
 
 ;; Transform parsed IL to a more usable structure
 (defn transform-il [parsed]
   (insta-transform/transform
-   {:program (fn [& instructions]
+   {:program (fn [& statements]
                {:type :program
-                :instructions (vec instructions)})
-    :instruction (fn [& args]
-                   (let [label (first (filter #(= (:type %) :label) args))
-                         operation (first (filter #(= (:type %) :operation) args))
-                         operand (first (filter #(= (:type %) :operand) args))]
+                :instructions (vec (remove nil? statements))})
+    :statement identity
+    :instruction (fn [op operand & rest]
+                   {:type :instruction
+                    :operation op
+                    :operand operand})
+    :labeled-instr (fn [label op operand & rest]
                      {:type :instruction
-                      :label (when label (:value label))
-                      :operation (:value operation)
-                      :operand (when operand (:value operand))}))
-    :label (fn [label]
-             {:type :label
-              :value (when (seq label) (str/replace label #":" ""))})
-    :operation (fn [op]
-                 {:type :operation
-                  :value op})
-    :operand (fn [operand]
-               {:type :operand
-                :value operand})
+                      :label label
+                      :operation op
+                      :operand operand})
+    :label (fn [id _] id) ; Remove the colon
+    :operation identity
+    :operand identity
     :identifier identity
-    :numeric #(Float/parseFloat %)
-    :memory_address identity} parsed))
-
+    :numeric #(try (Float/parseFloat %) (catch Exception _ %))
+    :memory-address identity
+    :comment (fn [_] nil)}
+   parsed))
 
 ;; High-level parsing function
 (defn parse-il-program
   "Parse an IL program and transform it"
   [il-code]
-  (let [parsed (parse il-code)]
-    (transform-il parsed)))
-
+  (-> il-code parse transform-il))
 
 (comment
   ;; Test with a simpler example first
   (let [simple-il "LD %I0.0"]
-    (insta/parses parse-il simple-il :trace true)
+    (println "--- Simple IL Parse Tree ---")
+    (pp/pprint (parse simple-il))
+    (println "\n--- Simple IL Transformed ---")
+    (pp/pprint (parse-il-program simple-il)))
 
-
-    ;; Parse the simple IL code
-    (parse-il-program simple-il))
-
-  ;; Then test with the full example
-  (let [sample-il "
-      LD %I0.0    ; Load input bit 0
-      ANDN %I0.1  ; AND with inverted input bit 1
-      ST %Q0.0    ; Store result to output bit 0
+  ;; Test with labels and comments
+  (let [complex-il "
+      START: LD %I0.0    ; Load input bit 0
+             ANDN %I0.1  ; AND with inverted input bit 1
+             ST %Q0.0    ; Store result to output bit 0
+      ; Blank line
+      ANOTHER: LDN %M5.2
+               ST %M100.0 ; Some other logic
     "]
-    (insta/parses parse-il sample-il :trace true)
+    (println "\n--- Complex IL Parse Tree ---")
+    (pp/pprint (parse complex-il))
+    (println "\n--- Complex IL Transformed ---")
+    (pp/pprint (parse-il-program complex-il)))
 
-    (parse-il-program sample-il))
+  ;; Function to test parsing with trace (using original parser for trace detail)
+  (defn test-parse-trace [input]
+    (println "\n--- Testing parse trace for input: ---" input)
+    (insta/parses parse-il input :trace true))
 
-  ;; Function to test parsing with trace
-  (defn test-parse [input]
-    (println "\nTesting parse for input:" input)
-    (println "Parse result:")
-    (println (insta/parses parse-il input :trace true))
-    (println "\nTransformed result:")
-    (println (parse-il-program input)))
+  ;; Function to test full parsing and transformation
+  (defn test-parse-transform [input]
+    (println "\n--- Testing parse and transform for input: ---" input)
+    (try
+      (pp/pprint (parse-il-program input))
+      (catch Exception e
+        (println "Error:" (ex-message e))
+        (pp/pprint (ex-data e)))))
 
   ;; Test cases
-  (test-parse "LD %I0.0")
+  (test-parse-transform "LD %I0.0")
+  (test-parse-transform "  LDN  %MW10  ") ; With extra spaces
+  (test-parse-transform "START: ADD 5")
+  (test-parse-transform "LOOP: JMP START ; Jump back")
+  (test-parse-transform "  ; This is just a comment")
+  (test-parse-transform "") ; Empty input
+  (test-parse-transform "INVALID INPUT") ; Test failure
 
-  (test-parse "
+  (test-parse-transform "
     LD %I0.0    ; Load input bit 0
     ANDN %I0.1  ; AND with inverted input bit 1
     ST %Q0.0    ; Store result to output bit 0
