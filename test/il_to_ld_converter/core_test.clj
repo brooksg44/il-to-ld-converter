@@ -1,6 +1,6 @@
 (ns il-to-ld-converter.core-test
   (:require [clojure.test :refer [deftest is testing]]
-            [il-to-ld-converter.core :refer [convert-il-program]]
+            [il-to-ld-converter.core-save :refer [convert-il-program]]
             [il-to-ld-converter.parser :as parser]
             [il-to-ld-converter.converter :as converter]))
 
