@@ -6,7 +6,9 @@
   :dependencies [[org.clojure/clojure "1.12.0"]
                  [instaparse "1.5.0"]
                  ;;[instaparse-transform "0.3.1"] ; For transforming parsed data
-                 [org.clojure/core.match "1.0.1"]]
+                 [org.clojure/core.match "1.0.1"]
+                 [org.clojure/core.cache "1.0.225"]
+                 [cljfx "1.9.5"]]
   :main ^:skip-aot il-to-ld-converter.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all

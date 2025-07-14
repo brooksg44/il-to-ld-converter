@@ -1,6 +1,7 @@
 (ns il-to-ld-converter.core
   (:require [il-to-ld-converter.parser :as parser]
             [il-to-ld-converter.converter :as converter]
+            [il-to-ld-converter.ui :as ui]
             [clojure.pprint :as pprint])
   (:gen-class))
 
@@ -17,35 +18,27 @@
       (println "Inside convert-il-program - LD Program:" ld-program)
       ld-program)))
 
-;; (defn -main
-;;   "Main entry point for the IL to LD converter"
-;;   [& args]
-;;   (let [sample-il "LD %I0.0"]
-;;     (println "Input IL Program:")
-;;     (println sample-il)
-;;     (println "\nParsed IL:")
-;;     (let [parsed-il (parser/parse-il-program sample-il)]
-;;       (pprint/pprint parsed-il))
-;;     (println "\nLD Diagram:")
-;;     (let [ld-program (convert-il-program sample-il)]
-;;       (println "LD Program before generate:" ld-program)
-;;       (println "Rungs:" (:rungs ld-program))
-;;       (println (converter/generate-ld-diagram ld-program)))))
-
 (defn -main
+  "Main entry point for the IL to LD converter"
   [& args]
-  (let [sample-il "
+  (if (and args (= (first args) "--console"))
+    ;; Console mode for testing
+    (let [sample-il "
     LD %I0.0    ; Load input bit 0
     ANDN %I0.1  ; AND with inverted input bit 1
     ST %Q0.0    ; Store result to output bit 0
   "]
-    (println "Input IL Program:")
-    (println sample-il)
-    (println "\nParsed IL:")
-    (let [parsed-il (parser/parse-il-program sample-il)]
-      (pprint/pprint parsed-il))
-    (println "\nLD Diagram:")
-    (let [ld-program (convert-il-program sample-il)]
-      (println "LD Program before generate:" ld-program)
-      (println "Rungs:" (:rungs ld-program))
-      (println (converter/generate-ld-diagram ld-program)))))
+      (println "Input IL Program:")
+      (println sample-il)
+      (println "\nParsed IL:")
+      (let [parsed-il (parser/parse-il-program sample-il)]
+        (pprint/pprint parsed-il))
+      (println "\nLD Diagram:")
+      (let [ld-program (convert-il-program sample-il)]
+        (println "LD Program before generate:" ld-program)
+        (println "Rungs:" (:rungs ld-program))
+        (println (converter/generate-ld-diagram ld-program))))
+    ;; GUI mode (default)
+    (do
+      (println "Starting IL to LD Converter GUI...")
+      (ui/start-app))))

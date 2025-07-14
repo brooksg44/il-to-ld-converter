@@ -1,6 +1,7 @@
 (ns il-to-ld-converter.converter
   (:require [clojure.core.match :refer [match]]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [il-to-ld-converter.ld-visualizer :as viz]))
 
 ;; Convert IL operations to LD elements
 (defn il-to-ld-element
@@ -41,21 +42,19 @@
   (println "Received parsed-il in convert-il-to-ld:" parsed-il)
   (let [instructions (:instructions parsed-il)]
     (println "Instructions to convert:" instructions)
-    (println "Converted rungs:" (mapv il-to-ld-element instructions))
-    {:type :ld-program
-     :rungs (mapv il-to-ld-element instructions)}))
+    (if instructions
+      (do
+        (println "Converted rungs:" (mapv il-to-ld-element instructions))
+        {:type :ld-program
+         :rungs (mapv il-to-ld-element instructions)})
+      (do
+        (println "No instructions found, returning empty program")
+        {:type :ld-program
+         :rungs []}))))
 
 (defn generate-ld-diagram
   "Generate a visual representation of the Ladder Diagram"
   [ld-program]
-  (let [rungs (:rungs ld-program)]
-    (str "Ladder Diagram:\n"
-         (str/join "\n"
-                   (map-indexed
-                    (fn [idx rung]
-                      (format "Rung %d: Operand: %s, Type: %s, Normally Closed: %s"
-                              (inc idx)
-                              (:operand rung)
-                              (:type rung)
-                              (:normally-closed? rung)))
-                    rungs)))))
+  (str (viz/generate-ascii-ld ld-program)
+       "\n\n"
+       (viz/generate-detailed-ld ld-program)))
