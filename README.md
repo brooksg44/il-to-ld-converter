@@ -8,7 +8,7 @@ This Clojure application converts IEC 61131-3 Instruction List (IL) programs to 
 - Convert IL instructions to LD elements
 - Generate a textual representation of the Ladder Diagram
 
-## Dependencies
+## Dependencies 
 - Clojure 1.12.1
 - Instaparse 1.4.12
 - core.match 1.0.1
