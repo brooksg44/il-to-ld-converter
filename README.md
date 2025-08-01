@@ -9,6 +9,7 @@ This Clojure application converts IEC 61131-3 Instruction List (IL) programs to 
 - Generate a textual representation of the Ladder Diagram
 
 ## Dependencies 
+- Leiningen 2.9.1
 - Clojure 1.12.1
 - Instaparse 1.4.12
 - core.match 1.0.1
